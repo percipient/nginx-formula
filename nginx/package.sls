@@ -1,38 +1,19 @@
 {% set use_upstart = pillar.get('nginx', {}).get('use_upstart', true) %}
 {% if use_upstart %}
 nginx-old-init:
-  file:
-    - rename
-    - name: /usr/share/nginx/init.d
-    - source: /etc/init.d/nginx
-    - require_in:
-      - file: nginx
-  cmd:
-    - wait
-    - name: dpkg-divert --divert /usr/share/nginx/init.d --add /etc/init.d/nginx
-    - require:
-      - module: nginx-old-init
+  cmd.run:
+    - name: mv /etc/init.d/nginx /usr/share/nginx/init.d && dpkg-divert --divert /usr/share/nginx/init.d --add /etc/init.d/nginx
     - watch:
-      - file: nginx-old-init
-    - require_in:
-      - file: nginx
-  module:
-    - wait
-    - name: cmd.run
-    - cmd: kill `cat /var/run/nginx.pid`
-    - watch:
-      - file: nginx-old-init
-    - require_in:
-      - file: nginx
+      - pkg: nginx
+    # Only run this once; don't keep trying to rename the file.
+    - unless: test -e /usr/share/nginx/init.d
 
 nginx-old-init-disable:
   cmd:
     - wait
     - name: update-rc.d -f nginx remove
-    - require:
-      - module: nginx-old-init
     - watch:
-      - file: nginx-old-init
+      - cmd: nginx-old-init
 {% endif %}
 
 nginx:
@@ -49,8 +30,8 @@ nginx:
     - source: salt://nginx/templates/upstart.jinja
     - require:
       - pkg: nginx
-      - file: nginx-old-init
-      - module: nginx-old-init
+    - watch:
+      - cmd: nginx-old-init
 {% endif %}
   service:
     - running
@@ -70,4 +51,6 @@ nginx:
 /etc/init.d/nginx:
   file.symlink:
     - target: /lib/init/upstart-job
+    - require:
+      - file: nginx
 {% endif %}
