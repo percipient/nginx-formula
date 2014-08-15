@@ -42,8 +42,8 @@ nginx:
       - file: nginx
 {% endif %}
       - file: /etc/nginx/nginx.conf
-      - file: /etc/nginx/conf.d/default.conf
-      - file: /etc/nginx/conf.d/example_ssl.conf
+      - file: /etc/nginx/conf.d/*
+      - file: /etc/nginx/sites-enabled/*
       - pkg: nginx
 
 # Create 'service' symlink for tab completion.
